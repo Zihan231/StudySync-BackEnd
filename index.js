@@ -186,7 +186,50 @@ async function run() {
       }
     });
 
-    // GET /partners?sort=asc|desc
+    // Sort
+    app.get("/partners/sort", async (req, res) => {
+      try {
+        const { expSort } = req.query; // "Expert" | "Intermediate" | "Beginner"
+
+        // 1️⃣ Define custom priority orders
+        const orders = {
+          Expert: ["Expert", "Intermediate", "Beginner"],
+          Intermediate: ["Intermediate", "Expert", "Beginner"],
+          Beginner: ["Beginner", "Intermediate", "Expert"],
+        };
+
+        // 2️⃣ Select priority array
+        const priority = orders[expSort] || [
+          "Expert",
+          "Intermediate",
+          "Beginner",
+        ];
+
+        // 3️⃣ Run aggregation
+        const partners = await partnersCollection
+          .aggregate([
+            {
+              $addFields: {
+                sortKey: {
+                  $indexOfArray: [priority, "$experienceLevel"],
+                },
+              },
+            },
+            {
+              $sort: { sortKey: 1 },
+            },
+            {
+              $project: { sortKey: 0 },
+            },
+          ])
+          .toArray();
+
+        res.json(partners);
+      } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ message: err.message });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
