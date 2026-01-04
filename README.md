@@ -1,1 +1,1 @@
-StudyMate-BackEnd
+StudySync-BackEnd
